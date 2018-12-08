@@ -67,10 +67,10 @@ struct Fabric {
 		std::fill(coord.begin(), coord.end(), 0);
 
 		std::for_each(
-		    claims.cbegin(), claims.cend(), [&](const auto &claim) {
+		    claims.cbegin(), claims.cend(), [this,&coord](const auto &claim) {
 			    for (auto y = claim.y1; y < claim.y2; y++) {
 				    for (auto x = claim.x1; x < claim.x2; x++) {
-					    coord[xy(x,y)]++;
+					    coord[this->xy(x,y)]++;
 				    }
 			    }
 		    });
