@@ -1,7 +1,7 @@
 
 CXXFLAGS := -std=c++14 -O3 -g -Wall $(CXXFLAGS)
 
-all: 1 2 3 4
+all: 1 2 3 4 8
 
 1: 1.cpp
 	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $^
@@ -15,5 +15,8 @@ all: 1 2 3 4
 4: 4.cpp
 	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $^
 
+8: 8.cpp
+	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $^
+
 clean:
-	rm -f 1 2 3 4
+	rm -f 1 2 3 4 8
