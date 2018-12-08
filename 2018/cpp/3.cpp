@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cstdio>
-#include <map>
 #include <vector>
 
 struct Claim {
@@ -19,10 +18,14 @@ struct Fabric {
 	std::vector<Claim> claims;
 	int width = 0, height = 0;
 
+	auto xy(int x, int y) const
+	{
+		return std::vector<Claim>::size_type(y*(width+1)+x);
+	}
+
 	void draw() const
 	{
 		std::vector<char> buf(height * (width+1));
-		auto xy = [w=this->width](int x, int y){ return y*(w+1)+x; };
 		std::fill(buf.begin(), buf.end(), '.');
 
 		for(const auto& claim : claims) {
@@ -60,24 +63,25 @@ struct Fabric {
 
 	int countDoublyClaimed() const
 	{
-		using CoordMap = std::map<std::pair<int, int>, int>;
-		CoordMap coord;
+		std::vector<int> coord(height * (width+1));
+		std::fill(coord.begin(), coord.end(), 0);
+
 		std::for_each(
 		    claims.cbegin(), claims.cend(), [&](const auto &claim) {
 			    for (auto y = claim.y1; y < claim.y2; y++) {
 				    for (auto x = claim.x1; x < claim.x2; x++) {
-					    coord[std::make_pair(x, y)]++;
+					    coord[xy(x,y)]++;
 				    }
 			    }
 		    });
 		return std::count_if(
 		    coord.cbegin(), coord.cend(),
-		    [&](const auto &p) -> bool {
-			    return p.second >= 2;
+		    [&](auto count) {
+			    return count >= 2;
 		    });
 	}
 
-	void addClaim(const Claim &&claim)
+	void addClaim(Claim&& claim)
 	{
 		// plausibility checks
 		if (claim.x2 < claim.x1 || claim.y2 < claim.y1) {
@@ -100,6 +104,7 @@ struct Fabric {
 int main()
 {
 	Fabric F;
+
 	for (;;) {
 		int x, y, w, h, id;
 		if (scanf("#%d @ %d,%d: %dx%d\n", &id, &x, &y, &w, &h) != 5) {
