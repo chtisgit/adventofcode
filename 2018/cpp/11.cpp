@@ -96,10 +96,6 @@ int main()
 	assert(powerLevel(217, 196, 39) == 0);
 	assert(powerLevel(101, 153, 71) == 4);
 
-	int test = 0;
-	acc(10, 12, 1, 3, [&test](int x, int y) { test += x + y; });
-	//assert(test == 10 * 8 + 12 * 8);
-
 	printf("> ");
 	if (scanf("%d", &gridSerial) != 1)
 		return 1;
