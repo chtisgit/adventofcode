@@ -30,7 +30,7 @@ struct Coord {
 		return std::array<Coord, 4>{Coord(x, y - 1), Coord(x, y + 1),
 		                            Coord(x - 1, y), Coord(x + 1, y)};
 	}
-	int distance(const Coord &other)
+	int distance(const Coord &other) const
 	{
 		return abs(x - other.x) + abs(y - other.y);
 	}
@@ -96,22 +96,28 @@ struct Map {
 		return res;
 	}
 
-	std::pair<int, bool> reachable(const Coord &from, const Coord &to)
+	std::pair<int, bool> reachable(const Coord &from, const Coord &to,
+	                               int pathlen = 0, int knownmin = -1)
 	{
+		if (knownmin >= 0 && pathlen > knownmin)
+			return {pathlen, false};
 		if (C(from) != '.')
-			return std::make_pair(0, false);
+			return {pathlen, false};
 		if (from == to)
-			return {0, true};
+			return {pathlen, true};
 
 		auto save = C(from);
 		C(from) = '*';
 
 		auto res = std::make_pair(100000, false);
 		auto adj = from.adjacent();
+		std::sort(adj.begin(), adj.end(), [&to](const Coord& lhs, const Coord& rhs){
+			return lhs.distance(to) < rhs.distance(to);
+		});
 		for (const auto &x : adj) {
-			auto tmp = reachable(x, to);
-			if (tmp.second && tmp.first + 1 < res.first) {
-				res.first = tmp.first + 1;
+			auto tmp = reachable(x, to, pathlen + 1, knownmin);
+			if (tmp.second && tmp.first < res.first) {
+				knownmin = res.first = tmp.first;
 				res.second = true;
 			}
 		}
@@ -172,13 +178,14 @@ bool Unit::attack(Map &m)
 	    });
 	if (last == adj.begin())
 		return false;
-	auto t = *std::min_element(adj.begin(), last, [&m](const Coord &lhs, const Coord& rhs) {
-		const auto& l = m.findUnit(lhs);
-		const auto& r = m.findUnit(rhs);
-		if(l.hp != r.hp)
-			return l.hp < r.hp;
-		return lhs < rhs;
-	});
+	auto t = *std::min_element(adj.begin(), last,
+	                           [&m](const Coord &lhs, const Coord &rhs) {
+		                           const auto &l = m.findUnit(lhs);
+		                           const auto &r = m.findUnit(rhs);
+		                           if (l.hp != r.hp)
+			                           return l.hp < r.hp;
+		                           return lhs < rhs;
+	                           });
 	auto &attacked = m.findUnit(t);
 
 	attacked.hp -= ap;
@@ -311,8 +318,16 @@ int main()
 		map.stats();
 		round++;
 	}
+	--round;
 
-	printf("\n%c won\n", map.victory());
+	printf("\n%c won after %d rounds\n", map.victory(), round);
+	int hp = 0;
+	std::for_each(map.units.cbegin(), map.units.cend(),
+	              [&hp](const Unit &u) {
+		              if (u.alive())
+			              hp += u.hp;
+	              });
+	printf("outcome: %d\n", round * hp);
 
 	return 0;
 }
