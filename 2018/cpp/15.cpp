@@ -17,7 +17,7 @@ struct Coord {
 
 	bool operator<(const Coord &rhs) const
 	{
-		return y < rhs.y && x < rhs.x;
+		return y < rhs.y || (y == rhs.y && x < rhs.x);
 	}
 
 	bool operator==(const Coord &rhs) const
@@ -28,7 +28,7 @@ struct Coord {
 	std::array<Coord, 4> adjacent() const
 	{
 		return std::array<Coord, 4>{Coord(x, y - 1), Coord(x, y + 1),
-					    Coord(x - 1, y), Coord(x + 1, y)};
+		                            Coord(x - 1, y), Coord(x + 1, y)};
 	}
 	int distance(const Coord &other)
 	{
@@ -41,6 +41,7 @@ struct Unit {
 	Coord pos;
 	int hp = 200, ap = 3;
 
+	bool alive() const;
 	void die(Map &);
 	bool attack(Map &);
 	void move(Map &, const Coord &to);
@@ -57,11 +58,33 @@ struct Map {
 		return data[c.y * w + c.x];
 	}
 
+	Unit &findUnit(const Coord &c)
+	{
+		return *std::find_if(
+		    units.begin(), units.end(),
+		    [c](const Unit &u) { return u.alive() && u.pos == c; });
+	}
+
+	int victory()
+	{
+		auto goblinsalive = std::count_if(
+		    units.cbegin(), units.cend(),
+		    [](const Unit &u) { return u.type == 'G' && u.alive(); });
+		auto elvesalive = std::count_if(
+		    units.cbegin(), units.cend(),
+		    [](const Unit &u) { return u.type == 'E' && u.alive(); });
+		if (goblinsalive == 0)
+			return 'E';
+		else if (elvesalive == 0)
+			return 'G';
+		return 0;
+	}
+
 	std::vector<Coord> targets(char type)
 	{
 		std::vector<Coord> res;
 		for (const Unit &u : units) {
-			if (u.type != type)
+			if (u.type != type || !u.alive())
 				continue;
 			auto adj = u.pos.adjacent();
 			for (const auto &c : adj) {
@@ -79,7 +102,7 @@ struct Map {
 			return std::make_pair(0, false);
 		if (from == to)
 			return {0, true};
-		
+
 		auto save = C(from);
 		C(from) = '*';
 
@@ -101,7 +124,7 @@ struct Map {
 	{
 		std::sort(units.begin(), units.end());
 		std::for_each(units.begin(), units.end(),
-			      [this](Unit &u) { u.next(*this); });
+		              [this](Unit &u) { u.next(*this); });
 	}
 
 	void draw()
@@ -115,6 +138,14 @@ struct Map {
 		}
 		printf("\n");
 	}
+
+	void stats()
+	{
+		for (const auto &u : units) {
+			printf("%c(%d,%d)  %03d HP\n", u.type, u.pos.x, u.pos.y,
+			       u.hp);
+		}
+	}
 };
 
 bool operator<(const Unit &lhs, const Unit &rhs)
@@ -122,6 +153,10 @@ bool operator<(const Unit &lhs, const Unit &rhs)
 	return lhs.pos < rhs.pos;
 }
 
+bool Unit::alive() const
+{
+	return hp > 0;
+}
 void Unit::die(Map &m)
 {
 	m.C(pos) = '.';
@@ -137,10 +172,14 @@ bool Unit::attack(Map &m)
 	    });
 	if (last == adj.begin())
 		return false;
-	auto t = *std::min_element(adj.begin(), last);
-	auto &attacked =
-	    *std::find_if(m.units.begin(), m.units.end(),
-			  [t](const Unit &u) { return u.pos == t; });
+	auto t = *std::min_element(adj.begin(), last, [&m](const Coord &lhs, const Coord& rhs) {
+		const auto& l = m.findUnit(lhs);
+		const auto& r = m.findUnit(rhs);
+		if(l.hp != r.hp)
+			return l.hp < r.hp;
+		return lhs < rhs;
+	});
+	auto &attacked = m.findUnit(t);
 
 	attacked.hp -= ap;
 	if (attacked.hp <= 0)
@@ -156,6 +195,10 @@ void Unit::move(Map &m, const Coord &to)
 
 void Unit::next(Map &m)
 {
+	// do nothing if dead
+	if (!alive())
+		return;
+
 	// can attack?
 	if (attack(m))
 		return;
@@ -164,6 +207,8 @@ void Unit::next(Map &m)
 
 	// in range
 	auto target = m.targets(enemy);
+	if (target.empty())
+		return;
 
 	// reachable
 	auto last = std::partition(
@@ -172,9 +217,9 @@ void Unit::next(Map &m)
 
 	// nearest
 	std::sort(target.begin(), target.end(),
-		  [this](const Coord &lhs, const Coord &rhs) {
-			  return pos.distance(lhs) < pos.distance(rhs);
-		  });
+	          [this](const Coord &lhs, const Coord &rhs) {
+		          return pos.distance(lhs) < pos.distance(rhs);
+	          });
 	auto D = pos.distance(target.front());
 	last = std::find_if(
 	    target.begin(), target.end(),
@@ -182,22 +227,36 @@ void Unit::next(Map &m)
 
 	// read-order
 	auto t = *std::min_element(target.begin(), last);
-	auto adj = pos.adjacent();
 
+	printf("%c(%d,%d) moves towards (%d,%d)\n", type, pos.x, pos.y, t.x,
+	       t.y);
+
+	auto adj = pos.adjacent();
 	// find first step
 	auto step =
 	    *std::min_element(adj.begin(), adj.end(),
-			      [&m, t](const Coord &lhs, const Coord &rhs) {
-				      auto l = m.reachable(lhs, t);
-				      auto r = m.reachable(rhs, t);
-				      if (l.second && !r.second) {
-					      return true;
-				      } else if (!l.second && r.second) {
-					      return false;
-				      }
-				      return l.first < r.first;
-			      });
-	move(m, step);
+	                      [&m, t](const Coord &lhs, const Coord &rhs) {
+		                      if (m.C(lhs) == '.' && m.C(rhs) != '.')
+			                      return true;
+		                      else if (m.C(lhs) != '.')
+			                      return false;
+
+		                      auto l = m.reachable(lhs, t);
+		                      auto r = m.reachable(rhs, t);
+		                      if (l.second && !r.second) {
+			                      return true;
+		                      } else if (!l.second) {
+			                      return false;
+		                      }
+		                      if (l.first != r.first) {
+			                      return l.first < r.first;
+		                      }
+		                      return lhs < rhs;
+	                      });
+	if (m.C(step) == '.') {
+		move(m, step);
+		attack(m);
+	}
 }
 
 Map parse()
@@ -243,8 +302,17 @@ int main()
 	auto map = parse();
 
 	map.draw();
-	map.next();
-	map.draw();
+
+	int round = 1;
+	while (map.victory() == 0) {
+		map.next();
+		printf("After round %d\n", round);
+		map.draw();
+		map.stats();
+		round++;
+	}
+
+	printf("\n%c won\n", map.victory());
 
 	return 0;
 }
