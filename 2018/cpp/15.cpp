@@ -1,9 +1,12 @@
-
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstdio>
+#include <deque>
 #include <vector>
+
+#define DEBUG_EN false
+#define DEBUG(...)  if(DEBUG_EN){do{printf(__VA_ARGS__);}while(false);}
 
 struct Coord;
 struct Map;
@@ -17,7 +20,7 @@ struct Coord {
 
 	bool operator<(const Coord &rhs) const
 	{
-		return y < rhs.y && x < rhs.x;
+		return y < rhs.y || (y == rhs.y && x < rhs.x);
 	}
 
 	bool operator==(const Coord &rhs) const
@@ -30,7 +33,7 @@ struct Coord {
 		return std::array<Coord, 4>{Coord(x, y - 1), Coord(x, y + 1),
 					    Coord(x - 1, y), Coord(x + 1, y)};
 	}
-	int distance(const Coord &other)
+	int distance(const Coord &other) const
 	{
 		return abs(x - other.x) + abs(y - other.y);
 	}
@@ -41,6 +44,7 @@ struct Unit {
 	Coord pos;
 	int hp = 200, ap = 3;
 
+	bool alive() const;
 	void die(Map &);
 	bool attack(Map &);
 	void move(Map &, const Coord &to);
@@ -57,11 +61,33 @@ struct Map {
 		return data[c.y * w + c.x];
 	}
 
+	Unit &findUnit(const Coord &c)
+	{
+		return *std::find_if(
+		    units.begin(), units.end(),
+		    [c](const Unit &u) { return u.alive() && u.pos == c; });
+	}
+
+	int victory()
+	{
+		auto goblinsalive = std::count_if(
+		    units.cbegin(), units.cend(),
+		    [](const Unit &u) { return u.type == 'G' && u.alive(); });
+		auto elvesalive = std::count_if(
+		    units.cbegin(), units.cend(),
+		    [](const Unit &u) { return u.type == 'E' && u.alive(); });
+		if (goblinsalive == 0)
+			return 'E';
+		else if (elvesalive == 0)
+			return 'G';
+		return 0;
+	}
+
 	std::vector<Coord> targets(char type)
 	{
 		std::vector<Coord> res;
 		for (const Unit &u : units) {
-			if (u.type != type)
+			if (u.type != type || !u.alive())
 				continue;
 			auto adj = u.pos.adjacent();
 			for (const auto &c : adj) {
@@ -75,26 +101,54 @@ struct Map {
 
 	std::pair<int, bool> reachable(const Coord &from, const Coord &to)
 	{
-		if (C(from) != '.')
-			return std::make_pair(0, false);
-		if (from == to)
+		if (from == to) {
+			if (C(from) != '.')
+				return {0, false};
 			return {0, true};
-		
-		auto save = C(from);
-		C(from) = '*';
-
-		auto res = std::make_pair(100000, false);
-		auto adj = from.adjacent();
-		for (const auto &x : adj) {
-			auto tmp = reachable(x, to);
-			if (tmp.second && tmp.first + 1 < res.first) {
-				res.first = tmp.first + 1;
-				res.second = true;
-			}
 		}
 
-		C(from) = save;
+		std::vector<std::pair<Coord, char>> marks;
+		auto adj = from.adjacent();
+		std::deque<std::pair<Coord, int>> fifo;
+		for (const auto &c : adj) {
+			fifo.push_back({c, 1});
+		}
+
+		auto res = std::make_pair(w * h, false);
+		while (!fifo.empty()) {
+			auto p = fifo.front();
+			fifo.pop_front();
+
+			if (C(p.first) != '.')
+				continue;
+
+			if (p.first == to) {
+				res = {p.second, true};
+				break;
+			}
+
+			assert(C(p.first) != '*');
+			marks.push_back({p.first, C(p.first)});
+			C(p.first) = '*';
+
+			auto adj = p.first.adjacent();
+			for (const auto &a : adj) {
+				fifo.push_back({a, p.second + 1});
+			}
+		}
+		for (const auto &mark : marks) {
+			C(mark.first) = mark.second;
+		}
 		return res;
+	}
+
+	auto nearestComparator(const Coord &target)
+	{
+		return [this, target](const Coord &lhs, const Coord &rhs) {
+			auto l = this->reachable(lhs, target);
+			auto r = this->reachable(rhs, target);
+			return l.first < r.first;
+		};
 	}
 
 	void next()
@@ -115,6 +169,17 @@ struct Map {
 		}
 		printf("\n");
 	}
+
+	void stats()
+	{
+		for (const auto &u : units) {
+			if (u.alive()) {
+
+				printf("%c(%d,%d)  %03d HP\n", u.type, u.pos.x,
+				       u.pos.y, u.hp);
+			}
+		}
+	}
 };
 
 bool operator<(const Unit &lhs, const Unit &rhs)
@@ -122,6 +187,10 @@ bool operator<(const Unit &lhs, const Unit &rhs)
 	return lhs.pos < rhs.pos;
 }
 
+bool Unit::alive() const
+{
+	return hp > 0;
+}
 void Unit::die(Map &m)
 {
 	m.C(pos) = '.';
@@ -137,10 +206,15 @@ bool Unit::attack(Map &m)
 	    });
 	if (last == adj.begin())
 		return false;
-	auto t = *std::min_element(adj.begin(), last);
-	auto &attacked =
-	    *std::find_if(m.units.begin(), m.units.end(),
-			  [t](const Unit &u) { return u.pos == t; });
+	auto t = *std::min_element(adj.begin(), last,
+				   [&m](const Coord &lhs, const Coord &rhs) {
+					   const auto &l = m.findUnit(lhs);
+					   const auto &r = m.findUnit(rhs);
+					   if (l.hp != r.hp)
+						   return l.hp < r.hp;
+					   return lhs < rhs;
+				   });
+	auto &attacked = m.findUnit(t);
 
 	attacked.hp -= ap;
 	if (attacked.hp <= 0)
@@ -156,48 +230,85 @@ void Unit::move(Map &m, const Coord &to)
 
 void Unit::next(Map &m)
 {
-	// can attack?
-	if (attack(m))
+	// do nothing if dead
+	if (!alive())
 		return;
+
+	// can attack?
+	if (attack(m)) {
+		DEBUG("%c(%d,%d): attacked\n", type, pos.x, pos.y);
+		return;
+	}
 
 	const auto enemy = type == 'E' ? 'G' : 'E';
 
 	// in range
 	auto target = m.targets(enemy);
+	if (target.empty()) {
+		DEBUG("%c(%d,%d): no targets\n", type, pos.x, pos.y);
+		return;
+	}
+
+	auto adj = pos.adjacent();
+	struct A {
+		Coord source;
+		Coord target;
+		std::pair<int, bool> steps;
+	};
+	std::vector<A> reach;
+	for (size_t j = 0; j < adj.size(); j++) {
+		if (m.C(adj[j]) != '.')
+			continue;
+		for (size_t i = 0; i < target.size(); i++) {
+
+			auto r = m.reachable(adj[j], target[i]);
+			DEBUG("(%d,%d)->(%d,%d)  steps:%d reachable:%d\n",
+			       adj[j].x, adj[j].y, target[i].x, target[i].y,
+			       r.first, r.second);
+
+			reach.push_back(A{
+			    .source = adj[j],
+			    .target = target[i],
+			    .steps = r,
+			});
+		}
+	}
 
 	// reachable
-	auto last = std::partition(
-	    target.begin(), target.end(),
-	    [this, &m](const Coord &c) { return m.reachable(pos, c).second; });
+	auto last = std::partition(reach.begin(), reach.end(),
+				   [](const A &a) { return a.steps.second; });
+	if (last == reach.begin()) {
+		DEBUG("%c(%d,%d): no targets reachable\n", type, pos.x, pos.y);
+		return;
+	}
 
 	// nearest
-	std::sort(target.begin(), target.end(),
-		  [this](const Coord &lhs, const Coord &rhs) {
-			  return pos.distance(lhs) < pos.distance(rhs);
-		  });
-	auto D = pos.distance(target.front());
-	last = std::find_if(
-	    target.begin(), target.end(),
-	    [this, D](const Coord &c) { return pos.distance(c) != D; });
+	auto nearestSteps =
+	    std::min_element(reach.begin(), last,
+			     [](const A &lhs, const A &rhs) {
+				     return lhs.steps.first < rhs.steps.first;
+			     })
+		->steps.first;
+	last = std::partition(reach.begin(), last, [nearestSteps](const A &a) {
+		return a.steps.first == nearestSteps;
+	});
+	assert(last != reach.begin());
+	for (auto x = reach.begin(); x != last; ++x) {
+		DEBUG("nearest: (%d,%d) steps: %d\n", x->source.x, x->source.y,
+		       x->steps.first);
+	}
 
 	// read-order
-	auto t = *std::min_element(target.begin(), last);
-	auto adj = pos.adjacent();
+	auto step = std::min_element(reach.begin(), last,
+				     [](const A &lhs, const A &rhs) {
+					     return lhs.source < rhs.source;
+				     })
+			->source;
 
-	// find first step
-	auto step =
-	    *std::min_element(adj.begin(), adj.end(),
-			      [&m, t](const Coord &lhs, const Coord &rhs) {
-				      auto l = m.reachable(lhs, t);
-				      auto r = m.reachable(rhs, t);
-				      if (l.second && !r.second) {
-					      return true;
-				      } else if (!l.second && r.second) {
-					      return false;
-				      }
-				      return l.first < r.first;
-			      });
+	DEBUG("%c(%d,%d) -> (%d,%d)\n", type, pos.x, pos.y, step.x, step.y);
+
 	move(m, step);
+	attack(m);
 }
 
 Map parse()
@@ -243,8 +354,25 @@ int main()
 	auto map = parse();
 
 	map.draw();
-	map.next();
-	map.draw();
+
+	int round = 1;
+	while (map.victory() == 0) {
+		map.next();
+		printf("After round %d\n", round);
+		map.draw();
+		map.stats();
+		round++;
+	}
+	--round;
+
+	printf("\n%c won after %d rounds\n", map.victory(), round);
+	int hp = 0;
+	std::for_each(map.units.cbegin(), map.units.cend(),
+		      [&hp](const Unit &u) {
+			      if (u.alive())
+				      hp += u.hp;
+		      });
+	printf("outcome: %d\n", round * hp);
 
 	return 0;
 }
