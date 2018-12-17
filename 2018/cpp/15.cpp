@@ -412,10 +412,11 @@ int main(int argc, char **argv)
 
 	if (task1.victory() != 'E' && argc >= 2 && atoi(argv[1]) == 2) {
 		// check if the elves can win with more attack power...
-		for (int ap = 3; ap < 9000; ++ap) {
+		for (int ap = 4; ap < 9000; ++ap) {
 			auto task2 = simulate(map, ap);
 			if(task2.victory() == 'E' && task2.countDead('E') == 0){
-				printf("the elves can win the battle with ap=%d\n", ap);
+				printf("the elves can win the battle with ap=%d after %d rounds without a loss\n", ap, task2.round);
+				printf("outcome: %d\n", task2.outcome());
 				break;
 			}
 		}
