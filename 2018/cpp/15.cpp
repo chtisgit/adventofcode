@@ -6,7 +6,12 @@
 #include <vector>
 
 #define DEBUG_EN false
-#define DEBUG(...)  if(DEBUG_EN){do{printf(__VA_ARGS__);}while(false);}
+#define DEBUG(...)                                                             \
+	if (DEBUG_EN) {                                                        \
+		do {                                                           \
+			printf(__VA_ARGS__);                                   \
+		} while (false);                                               \
+	}
 
 struct Coord;
 struct Map;
@@ -52,6 +57,7 @@ struct Unit {
 };
 
 struct Map {
+	int round = 0;
 	int w = 0, h = 0;
 	std::vector<char> data;
 	std::vector<Unit> units;
@@ -61,11 +67,30 @@ struct Map {
 		return data[c.y * w + c.x];
 	}
 
+	int countDead(char type = 0)
+	{
+		int dead = 0;
+		std::for_each(units.cbegin(), units.cend(), 
+			[&dead, type](const Unit& u){
+				if(!u.alive() && (type == 0 || type == u.type)) dead++;
+			});
+		return dead;
+	}
+
 	Unit &findUnit(const Coord &c)
 	{
 		return *std::find_if(
 		    units.begin(), units.end(),
 		    [c](const Unit &u) { return u.alive() && u.pos == c; });
+	}
+
+	void setAttackPower(char type, int ap)
+	{
+		for(auto& u : units) {
+			if(u.type == type){
+				u.ap = ap;
+			}
+		}
 	}
 
 	int victory()
@@ -161,6 +186,7 @@ struct Map {
 	void draw()
 	{
 		int x, y;
+		printf("After round %d\n", round);
 		for (y = 0; y < h; y++) {
 			for (x = 0; x < w; x++) {
 				printf("%c", C(Coord(x, y)));
@@ -179,6 +205,17 @@ struct Map {
 				       u.pos.y, u.hp);
 			}
 		}
+	}
+
+	int outcome() const
+	{
+		int hp = 0;
+		std::for_each(units.cbegin(), units.cend(),
+			      [&hp](const Unit &u) {
+				      if (u.alive())
+					      hp += u.hp;
+			      });
+		return hp * round;
 	}
 };
 
@@ -263,8 +300,8 @@ void Unit::next(Map &m)
 
 			auto r = m.reachable(adj[j], target[i]);
 			DEBUG("(%d,%d)->(%d,%d)  steps:%d reachable:%d\n",
-			       adj[j].x, adj[j].y, target[i].x, target[i].y,
-			       r.first, r.second);
+			      adj[j].x, adj[j].y, target[i].x, target[i].y,
+			      r.first, r.second);
 
 			reach.push_back(A{
 			    .source = adj[j],
@@ -295,7 +332,7 @@ void Unit::next(Map &m)
 	assert(last != reach.begin());
 	for (auto x = reach.begin(); x != last; ++x) {
 		DEBUG("nearest: (%d,%d) steps: %d\n", x->source.x, x->source.y,
-		       x->steps.first);
+		      x->steps.first);
 	}
 
 	// read-order
@@ -349,30 +386,40 @@ Map parse()
 	return m;
 }
 
-int main()
+// copy map
+Map simulate(Map map, int elvesAP = 3)
+{
+	map.draw();
+	map.setAttackPower('E', elvesAP);
+
+	while (map.victory() == 0) {
+		++map.round;
+		map.next();
+		map.draw();
+		//map.stats();
+	}
+
+	return std::move(map);
+}
+
+int main(int argc, char **argv)
 {
 	auto map = parse();
 
-	map.draw();
+	auto task1 = simulate(map);
+	printf("\n%c won after %d rounds\n", task1.victory(), task1.round);
+	printf("outcome: %d\n", task1.outcome());
 
-	int round = 1;
-	while (map.victory() == 0) {
-		map.next();
-		printf("After round %d\n", round);
-		map.draw();
-		map.stats();
-		round++;
+	if (task1.victory() != 'E' && argc >= 2 && atoi(argv[1]) == 2) {
+		// check if the elves can win with more attack power...
+		for (int ap = 3; ap < 9000; ++ap) {
+			auto task2 = simulate(map, ap);
+			if(task2.victory() == 'E' && task2.countDead('E') == 0){
+				printf("the elves can win the battle with ap=%d\n", ap);
+				break;
+			}
+		}
 	}
-	--round;
-
-	printf("\n%c won after %d rounds\n", map.victory(), round);
-	int hp = 0;
-	std::for_each(map.units.cbegin(), map.units.cend(),
-		      [&hp](const Unit &u) {
-			      if (u.alive())
-				      hp += u.hp;
-		      });
-	printf("outcome: %d\n", round * hp);
 
 	return 0;
 }
