@@ -12,8 +12,7 @@ acc(Count, [H|T]) ->
 acc2(Count, [], 0) ->
     Count;
 acc2(Count, [H|T], 0) ->
-    F = fuel(H),
-    acc2(Count + F, T, F);
+    acc2(Count, T, H);
 acc2(Count, L, M) ->
     F = fuel(M),
     acc2(Count + F, L, F).
