@@ -50,12 +50,10 @@ b(_, Noun, Verb, Expect, Expect) ->
     {Noun,Verb};
 b(_, 99, 100, _, _) ->
     {error,error};
+b(RAM, Noun, 100, Expect, _) ->
+    b(RAM, Noun+1, 0, Expect);
 b(RAM, Noun, Verb, Expect, _) ->
-    Verb2 = if Verb =:= 99 -> 0;
-               true -> Verb + 1 end,
-    Noun2 = if Verb2 =:= 0 -> Noun + 1;
-               true -> Noun end,
-    b(RAM, Noun2, Verb2, Expect).
+    b(RAM, Noun, Verb+1, Expect).
 
 b(RAM, Noun, Verb, Expect) ->
     Res = res(vm(insertCode(RAM, Noun, Verb), 0)),
