@@ -1,21 +1,14 @@
 -module(aoc1).
 -export([main/0]).
 
-fuel(Mass) ->
-    lists:max([(Mass div 3) - 2, 0]).
+fuel(Mass) -> lists:max([(Mass div 3) - 2, 0]).
 
-acc(Count, []) ->
-    Count;
-acc(Count, [H|T]) ->
-    acc(Count + fuel(H), T).
+fuel2(0, A) -> A;
+fuel2(Mass, A) -> fuel2(fuel(Mass), A+fuel(Mass)).
 
-acc2(Count, [], 0) ->
-    Count;
-acc2(Count, [H|T], 0) ->
-    acc2(Count, T, H);
-acc2(Count, L, M) ->
-    F = fuel(M),
-    acc2(Count + F, L, F).
+acc(L) -> lists:sum(lists:map(fun(X) -> fuel(X) end, L)).
+
+acc2(L) -> lists:sum(lists:map(fun(X) -> fuel2(X, 0) end, L)).
 
 intList() ->
     intList([]).
@@ -27,5 +20,5 @@ intList(L) ->
 
 main() ->
     L = intList(),
-    io:format("a: ~.B~nb: ~.B~n", [acc(0, L), acc2(0,L,0)]).
+    io:format("a: ~.B~nb: ~.B~n", [acc(L), acc2(L)]).
 
