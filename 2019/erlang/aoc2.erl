@@ -48,7 +48,7 @@ a(RAM) ->
 
 b(_, Noun, Verb, Expect, Expect) ->
     {Noun,Verb};
-b(_, 99, 99, _, _) ->
+b(_, 99, 100, _, _) ->
     {error,error};
 b(RAM, Noun, Verb, Expect, _) ->
     Verb2 = if Verb =:= 99 -> 0;
