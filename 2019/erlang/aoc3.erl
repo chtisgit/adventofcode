@@ -27,10 +27,9 @@ both(L1,L2) ->
 
 dist({X,Y}) -> abs(X)+abs(Y).
 
-% not sure if this is delivers the correct value, but it worked...
-findFirst([X|_],X,C) -> C;
-findFirst([_|T],X,C) -> findFirst(T,X,C+1);
-findFirst([],_,_) -> error. 
+findFirst([X|T],X,C,_) -> findFirst(T,X,C+1,C);
+findFirst([_|T],X,C,A) -> findFirst(T,X,C+1,A);
+findFirst([],_,_,A) -> A.
 
 main() ->
     Wire1 = expand(dirList(), {0,0}, []),
@@ -44,7 +43,7 @@ main() ->
     io:format("a: ~p~n", [Min]),
     
     MinSteps = lists:min(lists:map(fun(Pos) ->
-            length(Wire1) - findFirst(Wire1, Pos, 1) + 
-            length(Wire2) - findFirst(Wire2, Pos, 1)
+            length(Wire1) - findFirst(Wire1, Pos, 1, error) +
+            length(Wire2) - findFirst(Wire2, Pos, 1, error)
         end, B)),
     io:format("b: ~p~n", [MinSteps]).

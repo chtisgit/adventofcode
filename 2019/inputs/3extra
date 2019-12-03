@@ -1,0 +1,13 @@
+Example where an intersection is visited twice by one wire
+
+Correct result for (b) is 8
+Incorrect result is 14
+
+R3,D3,U3,R2
+U1,R3,D1,U1,R2
+
+X--u--
+o--X--
+   |
+   |
+   u
