@@ -22,7 +22,9 @@ expand([], Pos, Positions) ->
     [Pos|Positions].
 
 both(L1,L2) ->
-    lists:filter(fun(X) -> lists:member(X,L1) andalso X =/= {0,0} end, L2).
+    % using a map for (a few magnitudes high) performance optimization
+    M = maps:from_list(lists:zip(L1, [ok || _ <- lists:seq(1,length(L1))])),
+    lists:filter(fun(X) -> maps:is_key(X,M) andalso X =/= {0,0} end, L2).
 
 dist({X,Y}) -> abs(X)+abs(Y).
 
@@ -36,7 +38,7 @@ main() ->
     Wire2 = expand(dirList(), {0,0}, []),
     io:format("wire1 length: ~p~nwire2 length: ~p~n~n", [length(Wire1), length(Wire2)]),
 
-    % this is extremely slow ... :(
+    % not so slow anymore :)
     B = both(Wire1,Wire2),
 
     Min = lists:min(lists:map(fun(Pos) -> dist(Pos) end, B)),
