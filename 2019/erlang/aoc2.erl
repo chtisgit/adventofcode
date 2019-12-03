@@ -1,18 +1,11 @@
 -module(aoc2).
 -export([main/0]).
 
-intList() ->
-    I = io:get_line(standard_io, "> "),
-    lists:map(fun(X) -> {Int, _} = string:to_integer(X), 
-                        Int end, 
-            string:tokens(I, ",")).
-
 d(I, L) ->
     lists:nth(I+1, L).
 
 r(RAM, PC) ->
     {d(PC+1, RAM), d(PC+2, RAM), d(PC+3, RAM)}.
-
 
 vmexec(1, RAM, PC) ->
     {AddrA, AddrB, AddrC} = r(RAM, PC),
@@ -64,7 +57,7 @@ b(RAM) ->
     io:format("b: ~p ~p ~n", [Noun, Verb]).
 
 main() ->
-    RAM = intList(),
+    RAM = util:getInputCommaInts(),
     a(RAM),
     b(RAM).
 

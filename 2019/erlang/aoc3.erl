@@ -1,13 +1,6 @@
 -module(aoc3).
 -export([main/0]).
 
-dirList() ->
-    I = io:get_line(standard_io, "> "),
-    lists:map(fun(X) -> {Dir, S} = string:take(X, "RDLU"),
-                {Int, _} = string:to_integer(S),
-                {Dir, Int} end, 
-            string:tokens(I, ",")).
-
 expand([{_,0}|Rest], Pos, Positions) ->
     expand(Rest, Pos, Positions);
 expand([{Dir,N}|Rest], {X,Y}, Positions) ->
@@ -32,8 +25,8 @@ findFirst([_|T],X,C,A) -> findFirst(T,X,C+1,A);
 findFirst([],_,_,A) -> A.
 
 main() ->
-    Wire1 = expand(dirList(), {0,0}, []),
-    Wire2 = expand(dirList(), {0,0}, []),
+    Wire1 = expand(util:getInputDirections(), {0,0}, []),
+    Wire2 = expand(util:getInputDirections(), {0,0}, []),
     io:format("wire1 length: ~p~nwire2 length: ~p~n~n", [length(Wire1), length(Wire2)]),
 
     % not so slow anymore :)

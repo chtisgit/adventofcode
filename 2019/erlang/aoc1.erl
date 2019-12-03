@@ -10,15 +10,7 @@ acc(L) -> lists:sum(lists:map(fun(X) -> fuel(X) end, L)).
 
 acc2(L) -> lists:sum(lists:map(fun(X) -> fuel2(X, 0) end, L)).
 
-intList() ->
-    intList([]).
-intList(L) ->
-    {N,_} = string:to_integer(io:get_line(standard_io, "> ")),
-    if N =:= error -> L;
-       true -> intList([N|L])
-    end.
-
 main() ->
-    L = intList(),
+    L = util:getInputLineInts(),
     io:format("a: ~.B~nb: ~.B~n", [acc(L), acc2(L)]).
 
