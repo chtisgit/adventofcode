@@ -10,14 +10,13 @@ dirList() ->
 
 expand([{_,0}|Rest], Pos, Positions) ->
     expand(Rest, Pos, Positions);
-expand([{"R",N}|Rest], {X,Y}, Positions) ->
-    expand([{"R",N-1}|Rest], {X+1,Y}, [{X,Y}|Positions]);
-expand([{"L",N}|Rest], {X,Y}, Positions) ->
-    expand([{"L",N-1}|Rest], {X-1,Y}, [{X,Y}|Positions]);
-expand([{"U",N}|Rest], {X,Y}, Positions) ->
-    expand([{"U",N-1}|Rest],  {X,Y-1}, [{X,Y}|Positions]);
-expand([{"D",N}|Rest], {X,Y}, Positions) ->
-    expand([{"D",N-1}|Rest], {X,Y+1}, [{X,Y}|Positions]);
+expand([{Dir,N}|Rest], {X,Y}, Positions) ->
+    if Dir =:= "L" -> New = {X-1,Y};
+       Dir =:= "R" -> New = {X+1,Y};
+       Dir =:= "U" -> New = {X,Y-1};
+       Dir =:= "D" -> New = {X,Y+1};
+       true -> New = error end,
+    expand([{Dir,N-1}|Rest], New, [{X,Y}|Positions]);
 expand([], Pos, Positions) ->
     [Pos|Positions].
 
