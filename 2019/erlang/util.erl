@@ -2,6 +2,7 @@
 -export([getInputDirections/0]).
 -export([getInputCommaInts/0]).
 -export([getInputLineInts/0]).
+-export([getIntRange/0]).
 
 getInputDirections() ->
     I = io:get_line(standard_io, "> "),
@@ -24,3 +25,11 @@ getInputLineInts(L) ->
     if N =:= error -> L;
        true -> getInputLineInts([N|L])
     end.
+
+getIntRange() ->
+    I = io:get_line(standard_io, "> "),
+    erlang:list_to_tuple(
+        lists:sublist(
+            lists:map(fun(X) -> {Int, _} = string:to_integer(X), 
+                            Int end, 
+                string:tokens(I, "-")), 2)).
