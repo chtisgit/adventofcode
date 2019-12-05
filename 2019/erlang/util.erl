@@ -3,6 +3,11 @@
 -export([getInputCommaInts/0]).
 -export([getInputLineInts/0]).
 -export([getIntRange/0]).
+-export([getInputInt/0]).
+
+getInputInt() ->
+    {N,_} = string:to_integer(io:get_line(standard_io, "> ")),
+    N.
 
 getInputDirections() ->
     I = io:get_line(standard_io, "> "),
