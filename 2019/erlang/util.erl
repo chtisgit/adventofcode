@@ -4,6 +4,7 @@
 -export([getInputLineInts/0]).
 -export([getIntRange/0]).
 -export([getInputInt/0]).
+-export([getInputOrbits/0]).
 -export([getMap/1]).
 -export([max/2]).
 -export([gcd/2]).
@@ -44,6 +45,21 @@ getInputLineInts(L) ->
     {N,_} = string:to_integer(io:get_line(standard_io, "> ")),
     if N =:= error -> L;
        true -> getInputLineInts([N|L])
+    end.
+
+trimList(L) ->
+    lists:map(fun(X) -> string:trim(X) end, L).
+
+getInputOrbits() ->
+    getInputOrbits([]).
+
+getInputOrbits(L) ->
+    I = io:get_line(standard_io, "> "),
+    T = trimList(string:tokens(I, ")")),
+    if length(T) =:= 2 ->
+       {A,B} = list_to_tuple(T),
+       getInputOrbits([{B,A}|L]);
+       true -> L
     end.
 
 getIntRange() ->
