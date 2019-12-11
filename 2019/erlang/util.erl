@@ -21,6 +21,9 @@ max(Leq, [H|T], Max) ->
     false -> max(Leq, T, H)
     end.
 
+min(Leq, List, Min) ->
+    max(fun(A,B) -> not Leq(A,B) end, List, Min).
+
 getInputInt() ->
     {N,_} = string:to_integer(io:get_line(standard_io, "> ")),
     N.
