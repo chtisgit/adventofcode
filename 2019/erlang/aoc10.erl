@@ -41,7 +41,7 @@ binAngles([V|Vecs], Out) ->
     binAngles(Rest, [SortedBin|Out]).
 
 vaporize(M, {BX,BY}, Count, AngleVecs) ->
-    {X,Y} = vap(Count, lists:filtermap(fun(Bin) ->
+    Res = vap(Count, lists:filtermap(fun(Bin) ->
         Bin2 = lists:filter(fun({AX,AY}) ->
             {X,Y} = {AX+BX, AY+BY},
             case maps:is_key({X,Y},M) andalso maps:get({X,Y},M) of
@@ -53,9 +53,14 @@ vaporize(M, {BX,BY}, Count, AngleVecs) ->
            true -> {true, Bin2}
         end
     end, AngleVecs), error),
-    {X+BX,Y+BY}.
+    if is_atom(Res) -> Res;
+       true ->
+	{X,Y} = Res,
+        {X+BX,Y+BY}
+    end.
 
 vap(0, _, Last) -> Last;
+vap(_, [], _) -> error;
 vap(Count, [CA|Rest], _) ->
     [Current|CARest] = CA,
     if length(CARest) =:= 0 -> L = Rest;
@@ -70,8 +75,8 @@ main() ->
         maps:map(fun
             (Coord, asteroid) -> count(M, Coord, Vecs, 0);
             (_, _) -> 0 end, M)),
-    A = util:max(fun({_, Val1}, {_, Val2}) -> Val1 =< Val2 end, ListA),
-    io:format("a: ~p~n", [A]),
+    {ACoord,AValue} = util:max(fun({_, Val1}, {_, Val2}) -> Val1 =< Val2 end, ListA),
+    io:format("a: ~p~n", [AValue]),
     AngleVecs = lists:sort(fun([H1|_],[H2|_]) -> clockwise(H1,H2) end, binAngles(Vecs)),
-    B = vaporize(M, A, 200, AngleVecs),
+    B = vaporize(M, ACoord, 200, AngleVecs),
     io:format("b: ~p~n", [B]).
