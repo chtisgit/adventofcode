@@ -2,4 +2,4 @@
 
 My solutions for problems on adventofcode.com.
 
-This year: Erlang.
+This year: JavaScript.
