@@ -10,39 +10,16 @@ import { lines } from './input.mjs';
         }
 
         track(x,y) {
-            if (!this.m[y]) {
-                this.m[y] = {};
-                this.m[y][x] = 1;
-                return;
-            }
-
-            if (!this.m[y][x]) {
-                this.m[y][x] = 1;
-                return;
-            }
-
-            if (this.m[y][x] === 1) {
-                this.overlaps++;
-            }
-            this.m[y][x]++;
+            const key = `${x}~${y}`;
+            if (this.m[key] === 1) this.overlaps++;
+            this.m[key] = this.m[key] === undefined ? 1 : this.m[key] + 1;
         }
 
         trackLine(x1,y1,x2,y2) {
-            if (y1 === y2) {
-                let i1 = Math.min(x1,x2), i2 = Math.max(x1,x2);
-                for (let x = i1; x <= i2; x++) {
-                    this.track(x,y1);
-                }
-            } else if (x1 === x2) {
-                let i1 = Math.min(y1,y2), i2 = Math.max(y1,y2);
-                for (let y = i1; y <= i2; y++) {
-                    this.track(x1,y);
-                }
-            } else if (this.trackdiags) {
-                let xdir = x2 > x1 ? 1 : -1, ydir = y2 > y1 ? 1 : -1;
-                for (let y = y1, x = x1; y !== y2+ydir && x !== x2+xdir; y+=ydir, x+=xdir) {
-                    this.track(x,y);
-                }
+            let xdir = Math.sign(x2-x1), ydir = Math.sign(y2 - y1);
+            if (!this.trackdiags && (xdir !== 0 && ydir !== 0)) return;
+            for (let y = y1, x = x1; y !== y2+ydir || x !== x2+xdir; y+=ydir, x+=xdir) {
+                this.track(x,y);
             }
         }
     }
