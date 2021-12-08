@@ -1,12 +1,16 @@
 import * as readline from 'readline';
 import {stdin, stdout} from 'process';
 
+export function input() {
+    return readline.createInterface({
+        input: stdin,
+        output: stdout,
+    });
+}
+
 export function lines() {    
     return new Promise((resolve, reject) => {
-        const rl = readline.createInterface({
-            input: stdin,
-            output: stdout,
-        });
+        const rl = input();
 
         let lines = [];
 
