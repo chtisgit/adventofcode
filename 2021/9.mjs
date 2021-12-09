@@ -9,8 +9,8 @@ import { lines } from './input.mjs';
     for (let y = 0; y !== data.length; y++) {
         for (let x = 0; x !== data[y].length; x++) {
             const n = +data[y][x];
-            if ((y === 0 || n < +data[y-1][x]) &&
-                (y+1 === data.length || n < +data[y+1][x]) &&
+            if (!(n >= +data[y-1]?.[x]) &&
+                !(n >= +data[y+1]?.[x]) &&
                 !(n >= +data[y][x-1]) &&
                 !(n >= +data[y][x+1])) {
                     lps.push({x,y, height: n});
@@ -22,7 +22,7 @@ import { lines } from './input.mjs';
     const basinsize = ({x,y}, visited) => {
         const key = `${x}~${y}`;
         if (visited[key]) return 0;
-        if (!data[y] || !data[y][x]) return 0;
+        if (!data[y]?.[x]) return 0;
         const n = +data[y][x];
         if (n === 9) return 0;
         visited[key] = true;
