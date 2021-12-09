@@ -9,10 +9,8 @@ import { lines } from './input.mjs';
     for (let y = 0; y !== data.length; y++) {
         for (let x = 0; x !== data[y].length; x++) {
             const n = +data[y][x];
-            if (!(n >= +data[y-1]?.[x]) &&
-                !(n >= +data[y+1]?.[x]) &&
-                !(n >= +data[y][x-1]) &&
-                !(n >= +data[y][x+1])) {
+            if (!(n >= +data[y-1]?.[x]) && !(n >= +data[y+1]?.[x]) &&
+                !(n >= +data[y][x-1]) && !(n >= +data[y][x+1])) {
                     lps.push({x,y, height: n});
                     risk += 1 + n;
             }
@@ -21,10 +19,8 @@ import { lines } from './input.mjs';
 
     const basinsize = ({x,y}, visited) => {
         const key = `${x}~${y}`;
-        if (visited[key]) return 0;
-        if (!data[y]?.[x]) return 0;
         const n = +data[y][x];
-        if (n === 9) return 0;
+        if (visited[key] || !data[y]?.[x] || n === 9) return 0;
         visited[key] = true;
         return basinsize({x:x-1,y}, visited) + basinsize({x:x+1,y}, visited) +
             basinsize({x,y:y-1}, visited) + basinsize({x,y:y+1}, visited) + 1;
