@@ -5,6 +5,7 @@ export function input() {
     return readline.createInterface({
         input: stdin,
         output: stdout,
+        terminal: false,
     });
 }
 
