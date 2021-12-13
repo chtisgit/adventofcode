@@ -4,16 +4,15 @@ import { lines } from './input.mjs';
 lines().then((data) => {
     let dots = [], instrs = [];
 
-    data.forEach((line) => {
-        if (line === '') return;
-        if (line.startsWith('fold')) {
-            const i = line.indexOf('=');
-            instrs.push([line[i-1], +line.substr(i+1)]);
-            return;
-        }
+    const split = data.indexOf('');
+    data.slice(0,split).forEach((line) => {
         const [x,y] = line.split(',').map((n) => +n);
         dots.push({x,y});
     });
+    data.slice(split+1).forEach((line) => {
+        const [_, axis,num] = /([xy])=([0-9]+)/.exec(line);
+        instrs.push([axis, +num]);
+    })
 
     const compareCoords = ({x:x1,y:y1}, {x:x2,y:y2}) => y1 === y2 ? x1-x2 : y1-y2;
     const uniqueCoords = (val, i, arr) => i === 0 || compareCoords(val, arr[i-1]) !== 0;
