@@ -20,10 +20,7 @@ lines().then((data) => {
 
     let part1 = null;
     instrs.forEach(([coord, num], step) => {
-        dots.forEach((p) => {
-            if (p[coord] <= num) return;            
-            p[coord] = num - (p[coord] - num);
-        });
+        dots.forEach((p) => (p[coord] > num) ? p[coord] = num - (p[coord] - num) : null);
         dots.sort(compareCoords)
         dots = dots.filter(uniqueCoords);
 
