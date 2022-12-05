@@ -2,4 +2,4 @@
 
 My solutions for problems on adventofcode.com.
 
-This year: JavaScript.
+This year: Rust, maybe, some of aoc. Not very motivated this year.
