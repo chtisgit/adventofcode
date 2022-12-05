@@ -37,9 +37,9 @@ impl<T: Iterator<Item = io::Result<String>>> Iterator for ElfIterator<T> {
     }
 }
 
-fn new_elf_iterator() -> impl Iterator<Item = (i32, Vec<i32>)> {
+fn new_elf_iterator<T>(lines: T) -> ElfIterator<T> {
     ElfIterator {
-        lines: io::stdin().lock().lines(),
+        lines: lines,
         cnt: 1,
         cur_vec: Vec::new(),
     }
@@ -69,7 +69,7 @@ fn main() {
     let mut result = Top3 {
         top3: [None, None, None],
     };
-    new_elf_iterator()
+    new_elf_iterator(io::stdin().lock().lines())
         .map(|x| -> (i32, i32) {
             let (elf, calories) = x;
             (elf, calories.iter().sum())
